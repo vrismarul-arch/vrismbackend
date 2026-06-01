@@ -26,7 +26,8 @@ export const createService = async (req, res) => {
       problemsWeSolve,
       ourApproach,
       keyBenefits,
-      technologies
+      technologies,
+      gallery
     } = req.body;
     
     // Validate required fields
@@ -56,6 +57,7 @@ export const createService = async (req, res) => {
     let approachData = [];
     let benefitsData = [];
     let technologiesData = [];
+    let galleryData = [];
     
     if (problemsWeSolve) {
       try {
@@ -97,6 +99,16 @@ export const createService = async (req, res) => {
       }
     }
     
+    if (gallery) {
+      try {
+        galleryData = typeof gallery === 'string' 
+          ? JSON.parse(gallery) 
+          : gallery;
+      } catch (e) {
+        console.error("Error parsing gallery:", e);
+      }
+    }
+    
     // Upload main image
     let mainImageUrl = "";
     if (req.files && req.files.mainImage && req.files.mainImage[0]) {
@@ -111,11 +123,26 @@ export const createService = async (req, res) => {
       console.log("Icon uploaded:", iconUrl);
     }
     
-    // Upload gallery images (multiple)
-    let galleryUrls = [];
-    if (req.files && req.files.gallery && req.files.gallery.length > 0) {
-      galleryUrls = await uploadMultipleImages(req.files.gallery, "gallery");
-      console.log(`Uploaded ${galleryUrls.length} gallery images`);
+    // Upload gallery images and combine with metadata
+    let processedGallery = [];
+    // Handle both 'gallery' and 'galleryImages' field names
+    const galleryFiles = req.files?.gallery || req.files?.galleryImages || [];
+    
+    for (let i = 0; i < galleryData.length; i++) {
+      const item = galleryData[i];
+      let imageUrl = item.image || "";
+      
+      // If there's a new image file for this gallery item
+      if (galleryFiles[i] && galleryFiles[i].buffer) {
+        imageUrl = await uploadImage(galleryFiles[i], "gallery");
+        console.log(`Gallery item ${i} image uploaded:`, imageUrl);
+      }
+      
+      processedGallery.push({
+        title: item.title || "",
+        description: item.description || "",
+        image: imageUrl
+      });
     }
     
     // Process problems with images
@@ -203,7 +230,7 @@ export const createService = async (req, res) => {
       description: description || "",
       mainImage: mainImageUrl,
       icon: iconUrl,
-      gallery: galleryUrls,
+      gallery: processedGallery,
       category: category || "",
       status: status || "published",
       seoTitle: seoTitle || title,
@@ -330,7 +357,7 @@ export const updateService = async (req, res) => {
       ourApproach,
       keyBenefits,
       technologies,
-      existingGallery
+      gallery
     } = req.body;
     
     if (title) {
@@ -364,23 +391,43 @@ export const updateService = async (req, res) => {
     }
     
     // Handle gallery images
-    let existingGalleryUrls = [];
-    if (existingGallery) {
+    let galleryData = [];
+    if (gallery) {
       try {
-        existingGalleryUrls = typeof existingGallery === 'string' 
-          ? JSON.parse(existingGallery) 
-          : existingGallery;
+        galleryData = typeof gallery === 'string' 
+          ? JSON.parse(gallery) 
+          : gallery;
       } catch (e) {
-        existingGalleryUrls = [];
+        galleryData = [];
       }
     }
     
-    let newGalleryUrls = [];
-    if (req.files && req.files.gallery && req.files.gallery.length > 0) {
-      newGalleryUrls = await uploadMultipleImages(req.files.gallery, "gallery");
+    // Handle both 'gallery' and 'galleryImages' field names
+    const galleryFiles = req.files?.gallery || req.files?.galleryImages || [];
+    const updatedGallery = [];
+    
+    for (let i = 0; i < galleryData.length; i++) {
+      const item = galleryData[i];
+      let imageUrl = item.image || "";
+      
+      // If there's a new image file for this gallery item
+      if (galleryFiles[i] && galleryFiles[i].buffer) {
+        // Delete old image if it exists and is not a URL
+        if (imageUrl && imageUrl.includes("supabase")) {
+          await deleteImage(imageUrl);
+        }
+        imageUrl = await uploadImage(galleryFiles[i], "gallery");
+        console.log(`Gallery item ${i} image uploaded:`, imageUrl);
+      }
+      
+      updatedGallery.push({
+        title: item.title || "",
+        description: item.description || "",
+        image: imageUrl
+      });
     }
     
-    service.gallery = [...existingGalleryUrls, ...newGalleryUrls];
+    service.gallery = updatedGallery;
     
     // Parse and update problemsWeSolve
     if (problemsWeSolve) {
@@ -545,9 +592,9 @@ export const deleteService = async (req, res) => {
     }
     
     if (service.gallery && service.gallery.length > 0) {
-      service.gallery.forEach(image => {
-        if (image && image.includes("supabase.co")) {
-          deletePromises.push(deleteImage(image));
+      service.gallery.forEach(item => {
+        if (item.image && item.image.includes("supabase.co")) {
+          deletePromises.push(deleteImage(item.image));
         }
       });
     }

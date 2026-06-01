@@ -30,8 +30,9 @@ const serviceSchema = new mongoose.Schema(
       default: "",
     },
     gallery: [{
-      type: String,
-      default: [],
+      title: String,
+      description: String,
+      image: String,
     }],
     category: {
       type: String,

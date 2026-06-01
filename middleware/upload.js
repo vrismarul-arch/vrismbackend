@@ -24,11 +24,12 @@ const upload = multer({
   fileFilter: fileFilter
 });
 
-// Export the configured multer middleware - UPDATED with icon and gallery fields
+// Export the configured multer middleware - Updated with all possible field names
 export const uploadServiceImages = upload.fields([
   { name: "mainImage", maxCount: 1 },
-  { name: "icon", maxCount: 1 }, // Added icon field
-  { name: "gallery", maxCount: 20 }, // Added gallery for multiple images
+  { name: "icon", maxCount: 1 },
+  { name: "gallery", maxCount: 20 },
+  { name: "galleryImages", maxCount: 20 }, // Added to handle both field names
   { name: "problemsWeSolveImages", maxCount: 20 },
   { name: "ourApproachImages", maxCount: 20 },
   { name: "keyBenefitsImages", maxCount: 20 }
