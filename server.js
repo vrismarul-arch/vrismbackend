@@ -1,9 +1,15 @@
+// server.js - Add portfolio routes
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import multer from "multer";
 
 import connectDB from "./config/db.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
+import jobRoutes from "./routes/jobRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
+import blogRoutes from "./routes/blogRoutes.js";
+import portfolioRoutes from "./routes/portfolioRoutes.js"; // ADD THIS
 
 dotenv.config();
 
@@ -14,21 +20,26 @@ const app = express();
 // CORS
 app.use(cors());
 
-// IMPORTANT: Only use express.json() for non-multipart routes
-// But since we're using multer, we can keep it as long as multer routes are defined AFTER
-// However, multer will handle its own parsing
+// Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ROUTES - Multer will handle multipart/form-data automatically
-app.use("/api/services", serviceRoutes);
+// Static files for uploads
+app.use("/uploads", express.static("uploads"));
 
-// Test route to check if server is working
+// ROUTES
+app.use("/api/services", serviceRoutes);
+app.use("/api/jobs", jobRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/blogs", blogRoutes);
+app.use("/api/portfolio", portfolioRoutes); // ADD THIS
+
+// Test route
 app.get("/", (req, res) => {
   res.send("API Running");
 });
 
-// Error handling middleware for multer and other errors
+// ==================== ERROR HANDLING MIDDLEWARE ====================
 app.use((err, req, res, next) => {
   console.error("Global error:", err);
   
@@ -40,6 +51,13 @@ app.use((err, req, res, next) => {
   }
   
   if (err.message === "Only image files are allowed") {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+  
+  if (err instanceof multer.MulterError) {
     return res.status(400).json({
       success: false,
       message: err.message

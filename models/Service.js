@@ -1,5 +1,3 @@
-// backend/models/Service.js
-
 import mongoose from "mongoose";
 
 const serviceSchema = new mongoose.Schema(
@@ -62,6 +60,22 @@ const serviceSchema = new mongoose.Schema(
         title: String,
         description: String,
         image: String,
+      },
+    ],
+    faqs: [
+      {
+        question: {
+          type: String,
+          required: true,
+        },
+        answer: {
+          type: String,
+          required: true,
+        },
+        order: {
+          type: Number,
+          default: 0,
+        },
       },
     ],
     seoTitle: String,

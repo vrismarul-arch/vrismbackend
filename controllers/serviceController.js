@@ -1,5 +1,3 @@
-// backend/controllers/serviceController.js
-
 import Service from "../models/Service.js";
 import slugify from "slugify";
 import { uploadImage, deleteImage, uploadMultipleImages } from "../utils/supabaseStorage.js";
@@ -14,7 +12,6 @@ export const createService = async (req, res) => {
     console.log("Files:", req.files ? Object.keys(req.files) : "No files");
     console.log("Body:", req.body);
     
-    // Extract fields from req.body
     const {
       title,
       shortDescription,
@@ -27,10 +24,10 @@ export const createService = async (req, res) => {
       ourApproach,
       keyBenefits,
       technologies,
-      gallery
+      gallery,
+      faqs
     } = req.body;
     
-    // Validate required fields
     if (!title) {
       return res.status(400).json({
         success: false,
@@ -58,6 +55,7 @@ export const createService = async (req, res) => {
     let benefitsData = [];
     let technologiesData = [];
     let galleryData = [];
+    let faqsData = [];
     
     if (problemsWeSolve) {
       try {
@@ -109,6 +107,16 @@ export const createService = async (req, res) => {
       }
     }
     
+    if (faqs) {
+      try {
+        faqsData = typeof faqs === 'string' 
+          ? JSON.parse(faqs) 
+          : faqs;
+      } catch (e) {
+        console.error("Error parsing faqs:", e);
+      }
+    }
+    
     // Upload main image
     let mainImageUrl = "";
     if (req.files && req.files.mainImage && req.files.mainImage[0]) {
@@ -125,14 +133,12 @@ export const createService = async (req, res) => {
     
     // Upload gallery images and combine with metadata
     let processedGallery = [];
-    // Handle both 'gallery' and 'galleryImages' field names
     const galleryFiles = req.files?.gallery || req.files?.galleryImages || [];
     
     for (let i = 0; i < galleryData.length; i++) {
       const item = galleryData[i];
       let imageUrl = item.image || "";
       
-      // If there's a new image file for this gallery item
       if (galleryFiles[i] && galleryFiles[i].buffer) {
         imageUrl = await uploadImage(galleryFiles[i], "gallery");
         console.log(`Gallery item ${i} image uploaded:`, imageUrl);
@@ -210,10 +216,16 @@ export const createService = async (req, res) => {
       name: tech.name || ""
     }));
     
+    // Process FAQs
+    const processedFaqs = faqsData.map((faq, index) => ({
+      question: faq.question || "",
+      answer: faq.answer || "",
+      order: faq.order || index,
+    }));
+    
     // Create slug
     const slug = slugify(title, { lower: true, strict: true });
     
-    // Check if slug already exists
     const existingService = await Service.findOne({ slug });
     if (existingService) {
       return res.status(400).json({
@@ -222,7 +234,6 @@ export const createService = async (req, res) => {
       });
     }
     
-    // Create service
     const service = await Service.create({
       title,
       slug,
@@ -239,6 +250,7 @@ export const createService = async (req, res) => {
       ourApproach: processedApproach,
       keyBenefits: processedBenefits,
       technologies: processedTechnologies,
+      faqs: processedFaqs,
     });
     
     console.log("Service created successfully:", service._id);
@@ -342,7 +354,6 @@ export const updateService = async (req, res) => {
       });
     }
     
-    // Update basic fields
     const {
       title,
       shortDescription,
@@ -357,7 +368,8 @@ export const updateService = async (req, res) => {
       ourApproach,
       keyBenefits,
       technologies,
-      gallery
+      gallery,
+      faqs
     } = req.body;
     
     if (title) {
@@ -402,7 +414,6 @@ export const updateService = async (req, res) => {
       }
     }
     
-    // Handle both 'gallery' and 'galleryImages' field names
     const galleryFiles = req.files?.gallery || req.files?.galleryImages || [];
     const updatedGallery = [];
     
@@ -410,9 +421,7 @@ export const updateService = async (req, res) => {
       const item = galleryData[i];
       let imageUrl = item.image || "";
       
-      // If there's a new image file for this gallery item
       if (galleryFiles[i] && galleryFiles[i].buffer) {
-        // Delete old image if it exists and is not a URL
         if (imageUrl && imageUrl.includes("supabase")) {
           await deleteImage(imageUrl);
         }
@@ -550,6 +559,24 @@ export const updateService = async (req, res) => {
       }));
     }
     
+    // Parse and update FAQs
+    if (faqs) {
+      let faqsData;
+      try {
+        faqsData = typeof faqs === 'string' 
+          ? JSON.parse(faqs) 
+          : faqs;
+      } catch (e) {
+        faqsData = [];
+      }
+      
+      service.faqs = faqsData.map((faq, index) => ({
+        question: faq.question || "",
+        answer: faq.answer || "",
+        order: faq.order || index,
+      }));
+    }
+    
     const updated = await service.save();
     
     res.status(200).json({
@@ -580,7 +607,6 @@ export const deleteService = async (req, res) => {
       });
     }
     
-    // Delete all images from Supabase
     const deletePromises = [];
     
     if (service.mainImage && service.mainImage.includes("supabase.co")) {
