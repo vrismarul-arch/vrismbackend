@@ -13,7 +13,11 @@ export const getApplicantEmailTemplate = (application, jobTitle) => {
       <title>Application Received</title>
       <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-family: "Raleway", sans-serif;
+          font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+
           line-height: 1.6;
           color: #333;
           margin: 0;
@@ -180,7 +184,11 @@ export const getAdminEmailTemplate = (application, jobTitle) => {
       <title>New Application Received</title>
       <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-family: "Raleway", sans-serif;
+          font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+
           line-height: 1.6;
           color: #333;
           background-color: #f4f7fa;
@@ -297,7 +305,11 @@ export const getStatusUpdateEmailTemplate = (application, jobTitle, status, comm
       <title>Application Status Update</title>
       <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-family: "Raleway", sans-serif;
+          font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
+
           background-color: #f4f7fa;
           margin: 0;
           padding: 20px;
